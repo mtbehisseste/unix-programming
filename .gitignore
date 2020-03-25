@@ -1,0 +1,6 @@
+.gdb_history
+*.swp
+*.o
+peda-session*
+hw1
+!hw1/
