@@ -1,5 +1,5 @@
 EXE_NAME = hw1
-OBJS = netstat.o handler.o
+OBJS = main.o handler.o
 
 all: $(OBJS)
 	gcc -o $(EXE_NAME) -Wall -g $^

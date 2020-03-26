@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
         switch (cmdOpt) {
         case 't':
             readFile("/proc/net/tcp");
-            /* readFile("/proc/net/tcp6"); */
+            readFile("/proc/net/tcp6");
             break;
         case 'u':
             readFile("/proc/net/udp");
-            /* readFile("/proc/net/udp6"); */
+            readFile("/proc/net/udp6");
             break;
         case 'h':
             usage();
