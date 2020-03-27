@@ -15,7 +15,7 @@
 # include "handler.h"
 
 /* reads the given file content */
-void readFile(char *fileName) {
+void readFile(char *fileName, char* filterStr) {
     FILE *fileFd = fopen(fileName, "r");
     if (!fileFd) {
         fprintf(stderr, "Error opening: %s\n", fileName);
@@ -52,21 +52,28 @@ void readFile(char *fileName) {
 
         // parse ip address
         char *localIpDst = malloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN); // destination for parsed ipv4 address
+        memset(localIpDst, 0, isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
         char *foreignIpDst = malloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN); // destination for parsed ipb6 address
-        int localPortInt, foreignPortInt;
+        memset(foreignIpDst, 0, isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+        long localPortInt, foreignPortInt;
         parseIP(localAddr, &localIpDst, isIpv6);
-        localPortInt = (int)strtol(localAddrPort, NULL, 16);
+        localPortInt = strtol(localAddrPort, NULL, 16);
         parseIP(foreignAddr, &foreignIpDst, isIpv6);
-        foreignPortInt = (int)strtol(foreignAddrPort, NULL, 16);
+        foreignPortInt = strtol(foreignAddrPort, NULL, 16);
 
         // traverse /proc/{pid}/fd to find the PID corresponding to the inode
         PID = findPID(inode);
         
         // find program name using PID
-        char *processName = findProgram(PID); 
+        char *processName;
+        processName = findProgram(PID); 
 
         // output
-        printResult(isTCP, isIpv6, localIpDst, localPortInt, foreignIpDst, foreignPortInt, PID, processName);
+        if (!filterStr || isSubStr(processName, filterStr)) // print if no filter string given or there's match
+            printResult(isTCP, isIpv6, localIpDst, localPortInt, foreignIpDst, foreignPortInt, PID, processName);
+        
+        free(localIpDst);
+        free(foreignIpDst);
     }
     
     fclose(fileFd);
@@ -167,6 +174,9 @@ char *findPID(long inode) {
 }
 
 char *findProgram(char *pid) {
+    if (!pid)
+        return NULL;
+
     char *path = malloc(strlen("/proc/") + strlen(pid) + strlen("/cmdline")); 
     strcpy(path, "/proc/");
     strcat(path, pid);
@@ -182,24 +192,45 @@ char *findProgram(char *pid) {
     ssize_t r;
     r = getline(&line, &len, programCmd);  
 
-    char *program[10];
-    char *tmp;
+    char *program[10], *tmp;
     int i = 0;
     tmp = strtok(line, "/");
     program[++i] = tmp;
-    while(tmp && (tmp = strtok(NULL, "/"))) 
+    while(tmp && (tmp = strtok(NULL, "/"))) // cut the program path to array and get program name only
         program[++i] = tmp;
 
     return program[i];
 }
 
+bool isSubStr(char *target, char *pattern) {
+    if (!pattern) 
+        return true;
+
+    if (strlen(target) < strlen(pattern))
+        return false;
+
+    for (int i = 0; i <= strlen(target) - strlen(pattern); i++) {
+        if (strncmp(target + i, pattern, strlen(pattern)) == 0)
+            return true;
+    }
+    return false;
+}
+
 void printResult(bool isTCP, bool isIpv6,
-        char *localAddr, int localPortInt, 
-        char *foreignAddr, int foreignPortInt,
+        char *localAddr, long localPortInt, 
+        char *foreignAddr, long foreignPortInt,
         char *pid, char* processName) {
-    // TODO: change 0 to * if port is 0
-    printf("%-5s %s:%-*d %s:%-*d %s/%s\n", isTCP ? (isIpv6 ? "tcp6" : "tcp") : (isIpv6 ? "udp6" : "udp"),
-                                    localAddr, 23 - (int)strlen(localAddr), localPortInt, 
-                                    foreignAddr, 23 - (int)strlen(foreignAddr), foreignPortInt, 
+    // change port to '*' if port is 0
+    char *localPortStr = malloc(10);
+    char *foreignPortStr = malloc(10);
+    sprintf(localPortStr, localPortInt == 0 ? "%ld" : "*", localPortInt);
+    sprintf(foreignPortStr, foreignPortInt == 0? "%ld" : "*", foreignPortInt);
+
+    printf("%-5s %s:%-*s %s:%-*s %s/%s\n", isTCP ? (isIpv6 ? "tcp6" : "tcp") : (isIpv6 ? "udp6" : "udp"),
+                                    localAddr, 23 - (int)strlen(localAddr), localPortStr, 
+                                    foreignAddr, 23 - (int)strlen(foreignAddr), foreignPortStr, 
                                     pid, processName); // NOTE: the usage of the format string
+
+    free(localPortStr);
+    free(foreignPortStr);
 }

@@ -1,5 +1,7 @@
 # include <stdio.h>
+# include <stdlib.h>
 # include <getopt.h>
+# include <string.h>
 
 # include "handler.h"
 
@@ -20,56 +22,68 @@ int main(int argc, char **argv) {
         {0, 0, 0, 0} // TODO: why should this line be added?
     };
     int cmdOpt = 0;
+    bool isTCP = false;
+    bool isUDP = false;
 
     while ((cmdOpt = getopt_long(argc, argv, "hut", opts, NULL)) != -1) { // get long options until the end of options
         switch (cmdOpt) {
-        case 0:
-            printf("List of TCP connections:\n");
         case 't':
-            printf("List of TCP connections:\n");
-            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
-            readFile("/proc/net/tcp");
-            readFile("/proc/net/tcp6");
-            printf("\n");
+            isTCP = true;
             break;
         case 'u':
-            printf("List of UDP connections:\n");
-            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
-            readFile("/proc/net/udp");
-            readFile("/proc/net/udp6");
-            printf("\n");
+            isUDP = true;
             break;
         case 'h':
             usage();
             break;
         case '?':
+        default:
             // NOTE: getopt_long already printed an error message
             usage();
             return -1;
-        default: // TODO: no option should print all results
-            printf("List of TCP connections:\n");
-            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
-            readFile("/proc/net/tcp");
-            readFile("/proc/net/tcp6");
-            printf("\n");
-
-            printf("List of UDP connections:\n");
-            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
-            readFile("/proc/net/udp");
-            readFile("/proc/net/udp6");
-            printf("\n");
         }
     }    
 
+    char *filterStr = NULL;
     if (argc > optind) { // deal with the arguments after options, i.e. the filter string
-        if (argc - optind != 1) {
-            fprintf(stderr, "Invalid number of filter string\n");
-            return -1;
+        filterStr = malloc(256);
+        memset(filterStr, 0, 256);
+        strcat(filterStr, argv[optind++]); 
+        while (optind < argc) {
+            strcat(filterStr, " ");
+            strcat(filterStr, argv[optind++]); 
         }
-
-        printf("here filter string\n");
     }
 
+    if (!isTCP && !isUDP) { // both -t and -u is not specified, do both
+        printf("List of TCP connections:\n");
+        printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+        readFile("/proc/net/tcp", filterStr);
+        readFile("/proc/net/tcp6", filterStr);
+        printf("\n");
+        printf("List of UDP connections:\n");
+        printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+        readFile("/proc/net/udp", filterStr);
+        readFile("/proc/net/udp6", filterStr);
+        printf("\n");
+    }
+
+    if (isTCP) {
+        printf("List of TCP connections:\n");
+        printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+        readFile("/proc/net/tcp", filterStr);
+        readFile("/proc/net/tcp6", filterStr);
+        printf("\n");
+    }
+    if (isUDP) {
+        printf("List of UDP connections:\n");
+        printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+        readFile("/proc/net/udp", filterStr);
+        readFile("/proc/net/udp6", filterStr);
+        printf("\n");
+    }
+
+    free(filterStr);
     return 0;
 }
 
