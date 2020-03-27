@@ -18,7 +18,7 @@
 void readFile(char *fileName) {
     FILE *fileFd = fopen(fileName, "r");
     if (!fileFd) {
-        perror("fopen");
+        fprintf(stderr, "Error opening: %s\n", fileName);
         exit(-1);
     }
 
@@ -142,6 +142,7 @@ char *findPID(long inode) {
             
             // printf("%s %s\n", procDirContent->d_name, pidDirContent->d_name);
             char *p = malloc(strlen(path) + strlen(pidDirContent->d_name)); // path to each directory in this pid
+            memset(p, 0, strlen(path) + strlen(pidDirContent->d_name));
             struct stat *fileStat = malloc(sizeof(struct stat));
             strcat(p, path);
             strcat(p, pidDirContent->d_name);    
@@ -163,11 +164,33 @@ char *findPID(long inode) {
         free(path);
     }
     closedir(procDirP);
-    return "all traversed";
 }
 
 char *findProgram(char *pid) {
-     
+    char *path = malloc(strlen("/proc/") + strlen(pid) + strlen("/cmdline")); 
+    strcpy(path, "/proc/");
+    strcat(path, pid);
+    strcat(path, "/cmdline");
+    FILE *programCmd = fopen(path, "r");
+    if (!programCmd) {
+        fprintf(stderr, "Error opening: %s\n", path);
+        exit(-1);
+    }
+
+    char *line = NULL;
+    size_t len = 0; // if line is NULL and len is 0, `getline` will allocates a buffer itself
+    ssize_t r;
+    r = getline(&line, &len, programCmd);  
+
+    char *program[10];
+    char *tmp;
+    int i = 0;
+    tmp = strtok(line, "/");
+    program[++i] = tmp;
+    while(tmp && (tmp = strtok(NULL, "/"))) 
+        program[++i] = tmp;
+
+    return program[i];
 }
 
 void printResult(bool isTCP, bool isIpv6,
