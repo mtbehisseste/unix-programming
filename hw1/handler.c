@@ -2,9 +2,13 @@
 # include <stdlib.h>
 # include <stdbool.h>
 # include <stdint.h>
+# include <unistd.h>
 # include <sys/types.h>
+# include <sys/stat.h>
 # include <dirent.h>
 # include <string.h>
+# include <errno.h>
+# include <ctype.h>
 # include <arpa/inet.h>
 # include <netinet/in.h>
 
@@ -28,21 +32,23 @@ void readFile(char *fileName) {
     char delim[] = " :";
     char *lineArr[30]; // a line should contain less than 20 columns
 
-    char *inode, *localAddr, *localAddrPort, *foreignAddr, *foreignAddrPort, *state, *PID;
+    char *localAddr, *localAddrPort, *foreignAddr, *foreignAddrPort, *state, *PID;
+    long inode;
+    bool isTCP = (fileName[10] == 't'); // check whether TCP or UDP
     bool isIpv6 = (fileName[strlen(fileName) - 1] == '6'); // check if it's ipv6
 
     while ((r = getline(&line, &len, fileFd)) != -1) { // get the line in /proc/net/tcp
         i = 0;
-        lineArr[i++] = strtok(line, delim); // calling `strtok` with same string should use NULL next time
-        while ((col = strtok(NULL, delim))) // get columns in the line and store in array
-            lineArr[i++] = col;
+        lineArr[i++] = strtok(line, delim); 
+        while ((col = strtok(NULL, delim))) // should use NULL for the same string
+            lineArr[i++] = col; // get columns in the line and store in array
 
         localAddr = lineArr[1];
         localAddrPort = lineArr[2];
         foreignAddr = lineArr[3];
         foreignAddrPort = lineArr[4];
         state = lineArr[5];
-        inode = lineArr[13];
+        inode = strtol(lineArr[13], NULL, 10);
 
         // parse ip address
         char *localIpDst = malloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN); // destination for parsed ipv4 address
@@ -50,26 +56,22 @@ void readFile(char *fileName) {
         int localPortInt, foreignPortInt;
         parseIP(localAddr, &localIpDst, isIpv6);
         localPortInt = (int)strtol(localAddrPort, NULL, 16);
-        /* printf("local: %s:%d\n", localIpDst, localPortInt); */
         parseIP(foreignAddr, &foreignIpDst, isIpv6);
         foreignPortInt = (int)strtol(foreignAddrPort, NULL, 16);
-        /* printf("foreign: %s:%d\n", foreignIpDst, foreignPortInt); */
 
-        // traverse fd to find pid
+        // traverse /proc/{pid}/fd to find the PID corresponding to the inode
+        PID = findPID(inode);
         
+        // find program name using PID
+        char *processName = findProgram(PID); 
+
+        // output
+        printResult(isTCP, isIpv6, localIpDst, localPortInt, foreignIpDst, foreignPortInt, PID, processName);
     }
     
     fclose(fileFd);
     if (line) // free the allocated line memory
         free(line);
-
-    /* below should be seperated to anther file  */
-    /* DIR *pidDirP = opendir("/proc/1011/fd"); // pointer to the directory */
-    /* struct dirent *pidDirContent; // pointer to dir entry */
-
-    /* while ((tcpDirContent = readdir(pidDirP))) { */
-    /*     printf("d_name: %s\n", tcpDirContent->d_name); */
-    /* } */
 }
 
 void parseIP(char *ip, char **dst, bool isIpv6) {
@@ -87,11 +89,94 @@ void parseIP(char *ip, char **dst, bool isIpv6) {
             strncpy(tmp, ip + j * 2, 2);
             littleEndianIP[j] = strtol(tmp, NULL, 16);
         }
-        // little endian order
         struct in6_addr addr = {littleEndianIP[3], littleEndianIP[2], littleEndianIP[1], littleEndianIP[0],
             littleEndianIP[7], littleEndianIP[6], littleEndianIP[5], littleEndianIP[4],
             littleEndianIP[11], littleEndianIP[10], littleEndianIP[9], littleEndianIP[8],
-            littleEndianIP[15], littleEndianIP[14], littleEndianIP[13], littleEndianIP[12]};
+            littleEndianIP[15], littleEndianIP[14], littleEndianIP[13], littleEndianIP[12]}; // little endian
         inet_ntop(addressFamily, &addr, *dst, INET6_ADDRSTRLEN);
     }
+}
+
+char *findPID(long inode) {
+    DIR *procDirP = opendir("/proc/"); // pointer to the directory
+    struct dirent *procDirContent; // pointer to /proc dir entry
+    struct dirent *pidDirContent; // pointer to /proc/{pid} dir entry
+
+    while ((procDirContent = readdir(procDirP))) { // traverse all pid
+        if (procDirContent->d_name[0] == '.') // if match '.' or '..'
+            continue;
+        
+        // make sure traverse only pid directory in /proc
+        bool dirNameIsDigit = true;
+        for (int i = 0; i < strlen(procDirContent->d_name); i++) {
+            if (!isdigit(procDirContent->d_name[i])) {
+                dirNameIsDigit = false;
+                break;
+            }
+        }
+        if (!dirNameIsDigit) 
+            continue;
+
+        char *path = malloc(9 + strlen(procDirContent->d_name));
+        // NOTE: there might be fucking trash in new allocated memory, and will cost you 12hrs to debug this QQ
+        // Or maybe you should `strcpy(path, "/proc", 5)` first then `strcat`
+        memset(path, 0, 9 + strlen(procDirContent->d_name)); 
+        strcat(path, "/proc/");
+        strcat(path, procDirContent->d_name); 
+        strcat(path, "/fd/");
+        DIR *pidDirP = opendir(path); // "/proc/{pid}/fd/"
+        if (!pidDirP) { 
+            // NOTE: errors might be 'no such file or directory' or 'too many open files'
+            // so remember to `closedir` when finish
+            
+            // fprintf(stderr, "%s %s\n", strerror(errno), path);
+            closedir(pidDirP);
+            free(path);
+            path = NULL;
+            continue;
+        }
+
+        while ((pidDirContent = readdir(pidDirP))) { // traverse all symbol link or directory in this pid (process)
+            if (pidDirContent->d_name[0] == '.') // if match '.' or '..'
+                continue;
+            
+            // printf("%s %s\n", procDirContent->d_name, pidDirContent->d_name);
+            char *p = malloc(strlen(path) + strlen(pidDirContent->d_name)); // path to each directory in this pid
+            struct stat *fileStat = malloc(sizeof(struct stat));
+            strcat(p, path);
+            strcat(p, pidDirContent->d_name);    
+            if (stat(p, fileStat) != -1) { // read file states
+                if (S_ISSOCK(fileStat->st_mode)) { // check if the type is socket
+                    if (fileStat->st_ino == inode) {
+                        free(path);
+                        free(p);
+                        free(fileStat);
+                        closedir(procDirP);
+                        return procDirContent->d_name;
+                    }
+                }
+            }
+            free(fileStat);
+            free(p);
+        }
+        closedir(pidDirP);
+        free(path);
+    }
+    closedir(procDirP);
+    return "all traversed";
+}
+
+char *findProgram(char *pid) {
+     
+}
+
+void printResult(bool isTCP, bool isIpv6,
+        char *localAddr, int localPortInt, 
+        char *foreignAddr, int foreignPortInt,
+        char *pid, char* processName) {
+    // TODO: change 0 to * if port is 0
+    printf("%-5s %s:%-*d %s:%-*d %s/%s\n", isTCP ? (isIpv6 ? "tcp6" : "tcp") : (isIpv6 ? "udp6" : "udp"),
+                                    localAddr, 23 - (int)strlen(localAddr), localPortInt, 
+                                    foreignAddr, 23 - (int)strlen(foreignAddr), foreignPortInt, 
+                                    pid, processName); // NOTE: the usage of the format string
 }

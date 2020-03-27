@@ -23,22 +23,41 @@ int main(int argc, char **argv) {
 
     while ((cmdOpt = getopt_long(argc, argv, "hut", opts, NULL)) != -1) { // get long options until the end of options
         switch (cmdOpt) {
+        case 0:
+            printf("List of TCP connections:\n");
         case 't':
+            printf("List of TCP connections:\n");
+            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
             readFile("/proc/net/tcp");
             readFile("/proc/net/tcp6");
+            printf("\n");
             break;
         case 'u':
+            printf("List of UDP connections:\n");
+            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
             readFile("/proc/net/udp");
             readFile("/proc/net/udp6");
+            printf("\n");
             break;
         case 'h':
             usage();
             break;
         case '?':
-        default: // TODO: no option should print all results
-            // getopt_long already printed an error message
+            // NOTE: getopt_long already printed an error message
             usage();
             return -1;
+        default: // TODO: no option should print all results
+            printf("List of TCP connections:\n");
+            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+            readFile("/proc/net/tcp");
+            readFile("/proc/net/tcp6");
+            printf("\n");
+
+            printf("List of UDP connections:\n");
+            printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
+            readFile("/proc/net/udp");
+            readFile("/proc/net/udp6");
+            printf("\n");
         }
     }    
 
