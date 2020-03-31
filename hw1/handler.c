@@ -124,10 +124,10 @@ char *findPID(long inode) {
         if (!dirNameIsDigit) 
             continue;
 
-        char *path = malloc(9 + strlen(procDirContent->d_name));
+        char *path = malloc(10 + strlen(procDirContent->d_name));
         // NOTE: there might be fucking trash in new allocated memory, and will cost you 12hrs to debug this QQ
         // Or maybe you should `strcpy(path, "/proc", 5)` first then `strcat`
-        memset(path, 0, 9 + strlen(procDirContent->d_name)); 
+        memset(path, 0, 10 + strlen(procDirContent->d_name)); 
         strcat(path, "/proc/");
         strcat(path, procDirContent->d_name); 
         strcat(path, "/fd/");
@@ -171,11 +171,12 @@ char *findPID(long inode) {
         free(path);
     }
     closedir(procDirP);
+    return "-";
 }
 
 char *findProgram(char *pid) {
-    if (!pid)
-        return NULL;
+    if (!strcmp(pid, "-"))
+        return "-";
 
     char *path = malloc(strlen("/proc/") + strlen(pid) + strlen("/cmdline")); 
     strcpy(path, "/proc/");
