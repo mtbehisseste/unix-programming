@@ -224,7 +224,7 @@ void printResult(bool isTCP, bool isIpv6,
     // change port to '*' if port is 0
     char *localPortStr = malloc(10);
     char *foreignPortStr = malloc(10);
-    sprintf(localPortStr, localPortInt == 0 ? ":" : "%ld", localPortInt);
+    sprintf(localPortStr, localPortInt == 0 ? "*" : "%ld", localPortInt);
     sprintf(foreignPortStr, foreignPortInt == 0? "*" : "%ld", foreignPortInt);
 
     printf("%-5s %s:%-*s %s:%-*s %s/%s\n", isTCP ? (isIpv6 ? "tcp6" : "tcp") : (isIpv6 ? "udp6" : "udp"),
