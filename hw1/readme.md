@@ -14,7 +14,7 @@ $ ./hw1 [-t|--tcp] [-u|--udp] [filter-string]
 ## Example
 Note that you may run the program with superuser to get the permissions to read `/proc` files owned by other users.
 ```bash
-$ ./hw1 -t
+$ ./hw1
 List of TCP connections:
 Proto Local Address            Foreign Address          PID/Program name and arguments
 tcp   127.0.0.1:41453          0.0.0.0:*                8028/python3
