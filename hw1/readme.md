@@ -76,9 +76,9 @@ tcp   192.168.1.8:49020        172.217.27.131:443       1904/chrome --type=utili
 tcp   192.168.1.8:47804        74.125.203.189:443       1904/chrome --type=utility --field-trial-handle=15061460032943566177,9870870319659881893,131072 --lang=en-US --service-sandbox-type=network --disable-webrtc-apm-in-audio-service --shared-files
 tcp   192.168.1.8:45894        140.82.112.25:443        1904/chrome --type=utility --field-trial-handle=15061460032943566177,9870870319659881893,131072 --lang=en-US --service-sandbox-type=network --disable-webrtc-apm-in-audio-service --shared-files
 tcp   192.168.1.8:50864        104.26.4.98:443          1904/chrome --type=utility --field-trial-handle=15061460032943566177,9870870319659881893,131072 --lang=en-US --service-sandbox-type=network --disable-webrtc-apm-in-audio-service --shared-files
-tcp6  8d:8d8d:::80             :::*                     -/-
-tcp6  0:8d:::22                :::*                     -/-
-tcp6  0:8d::1:631              :::*                     -/-
+tcp6  :::80                    :::*                     -/-
+tcp6  :::22                    :::*                     -/-
+tcp6  ::1:631                  :::*                     -/-
 ```
 With `filter-string` given:
 ```bash
