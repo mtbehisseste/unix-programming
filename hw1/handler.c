@@ -51,10 +51,9 @@ void readFile(char *fileName, char* filterStr) {
         inode = strtol(lineArr[13], NULL, 10);
 
         // parse ip address
-        char *localIpDst = malloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN); // destination for parsed ipv4 address
-        memset(localIpDst, 0, isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
-        char *foreignIpDst = malloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN); // destination for parsed ipb6 address
-        memset(foreignIpDst, 0, isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+        // TODO: fix ipv6 string unexpected bug
+        char *localIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipv4 address
+        char *foreignIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipb6 address
         long localPortInt, foreignPortInt;
         parseIP(localAddr, &localIpDst, isIpv6);
         localPortInt = strtol(localAddrPort, NULL, 16);
@@ -124,10 +123,10 @@ char *findPID(long inode) {
         if (!dirNameIsDigit) 
             continue;
 
-        char *path = malloc(10 + strlen(procDirContent->d_name));
-        // NOTE: there might be fucking trash in new allocated memory, and will cost you 12hrs to debug this QQ
-        // Or maybe you should `strcpy(path, "/proc", 5)` first then `strcat`
-        memset(path, 0, 10 + strlen(procDirContent->d_name)); 
+        char *path = calloc(10 + strlen(procDirContent->d_name), sizeof(char*));
+        // NOTE: there might be fucking trash in new allocated memory, and will cost you 12hrs to debug this,
+        // so remember to initialize memory to 0.
+        // Or maybe you should `strcpy(path, "/proc", 5)` first, then `strcat`
         strcat(path, "/proc/");
         strcat(path, procDirContent->d_name); 
         strcat(path, "/fd/");
@@ -148,8 +147,7 @@ char *findPID(long inode) {
                 continue;
             
             // printf("%s %s\n", procDirContent->d_name, pidDirContent->d_name);
-            char *p = malloc(strlen(path) + strlen(pidDirContent->d_name)); // path to each directory in this pid
-            memset(p, 0, strlen(path) + strlen(pidDirContent->d_name));
+            char *p = calloc(strlen(path) + strlen(pidDirContent->d_name), sizeof(char*)); // path to each directory in this pid
             struct stat *fileStat = malloc(sizeof(struct stat));
             strcat(p, path);
             strcat(p, pidDirContent->d_name);    
@@ -222,8 +220,8 @@ void printResult(bool isTCP, bool isIpv6,
         char *foreignAddr, long foreignPortInt,
         char *pid, char* processName) {
     // change port to '*' if port is 0
-    char *localPortStr = malloc(10);
-    char *foreignPortStr = malloc(10);
+    char *localPortStr = calloc(10, sizeof(long));
+    char *foreignPortStr = calloc(10, sizeof(long));
     sprintf(localPortStr, localPortInt == 0 ? "*" : "%ld", localPortInt);
     sprintf(foreignPortStr, foreignPortInt == 0? "*" : "%ld", foreignPortInt);
 
