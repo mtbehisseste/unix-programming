@@ -51,7 +51,6 @@ void readFile(char *fileName, char* filterStr) {
         inode = strtol(lineArr[13], NULL, 10);
 
         // parse ip address
-        // TODO: fix ipv6 string unexpected bug
         char *localIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipv4 address
         char *foreignIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipb6 address
         long localPortInt, foreignPortInt;
@@ -91,10 +90,12 @@ void parseIP(char *ip, char **dst, bool isIpv6) {
         addressFamily = AF_INET6;
         int littleEndianIP[16];
         for (int j = 0; j < 16; j++) { // cut ip string to array in order to convert to little endian
-            char *tmp = malloc(2); 
+            char *tmp = malloc(3); 
             strncpy(tmp, ip + j * 2, 2);
+            tmp[2] = '\0';
             littleEndianIP[j] = strtol(tmp, NULL, 16);
         }
+
         struct in6_addr addr = {littleEndianIP[3], littleEndianIP[2], littleEndianIP[1], littleEndianIP[0],
             littleEndianIP[7], littleEndianIP[6], littleEndianIP[5], littleEndianIP[4],
             littleEndianIP[11], littleEndianIP[10], littleEndianIP[9], littleEndianIP[8],
