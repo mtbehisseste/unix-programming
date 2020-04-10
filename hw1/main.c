@@ -5,7 +5,7 @@
 
 # include "handler.h"
 
-/* display the usage messages */
+// display the usage messages
 void usage() {
     printf("usage: ./hw1 [-htu] {fliter-string}\n");
     printf("\n");
@@ -15,7 +15,8 @@ void usage() {
 }
 
 int main(int argc, char **argv) {
-    static struct option opts[] = { // the array of type option to store long options
+    // the array of type option to store long options
+    static struct option opts[] = { 
         {"help", 0, NULL, 'h'}, 
         {"tcp", 0, NULL, 't'},
         {"udp", 0, NULL, 'u'},
@@ -25,7 +26,8 @@ int main(int argc, char **argv) {
     bool isTCP = false;
     bool isUDP = false;
 
-    while ((cmdOpt = getopt_long(argc, argv, "hut", opts, NULL)) != -1) { // get long options until the end of options
+    // get long options until the end of options
+    while ((cmdOpt = getopt_long(argc, argv, "hut", opts, NULL)) != -1) { 
         switch (cmdOpt) {
         case 't':
             isTCP = true;
@@ -45,7 +47,8 @@ int main(int argc, char **argv) {
     }    
 
     char *filterStr = NULL;
-    if (argc > optind) { // deal with the arguments after options, i.e. the filter string
+    // deal with the arguments after options, i.e. the filter string
+    if (argc > optind) { 
         filterStr = malloc(256);
         memset(filterStr, 0, 256);
         strcat(filterStr, argv[optind++]); 
@@ -55,7 +58,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (!isTCP && !isUDP) { // both -t and -u is not specified, do both
+    if (!isTCP && !isUDP) { 
+        // both -t and -u is not specified, do both
         printf("List of TCP connections:\n");
         printf("%-5s %-24s %-24s %s\n", "Proto", "Local Address", "Foreign Address", "PID/Program name and arguments");
         readFile("/proc/net/tcp", filterStr);

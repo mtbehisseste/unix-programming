@@ -14,7 +14,7 @@
 
 # include "handler.h"
 
-/* reads the given file content */
+// reads the given file content
 void readFile(char *fileName, char* filterStr) {
     FILE *fileFd = fopen(fileName, "r");
     if (!fileFd) {
@@ -22,10 +22,13 @@ void readFile(char *fileName, char* filterStr) {
         exit(-1);
     }
 
+    // if line is NULL and len is 0, `getline` will allocates a buffer itself
     char *line = NULL;
-    size_t len = 0; // if line is NULL and len is 0, `getline` will allocates a buffer itself
+    size_t len = 0; 
     ssize_t r;
-    r = getline(&line, &len, fileFd); // strip the first line of /proc/net/tcp which is the name of each column
+    
+    // strip the first line of /proc/net/tcp which is the name of each column
+    r = getline(&line, &len, fileFd); 
 
     int i;
     char *col; // stores tmp columns in line 
@@ -34,14 +37,16 @@ void readFile(char *fileName, char* filterStr) {
 
     char *localAddr, *localAddrPort, *foreignAddr, *foreignAddrPort, *state, *PID;
     long inode;
-    bool isTCP = (fileName[10] == 't'); // check whether TCP or UDP
-    bool isIpv6 = (fileName[strlen(fileName) - 1] == '6'); // check if it's ipv6
+    bool isTCP = (fileName[10] == 't'); 
+    bool isIpv6 = (fileName[strlen(fileName) - 1] == '6'); 
 
-    while ((r = getline(&line, &len, fileFd)) != -1) { // get the line in /proc/net/tcp
+    while ((r = getline(&line, &len, fileFd)) != -1) { 
         i = 0;
         lineArr[i++] = strtok(line, delim); 
-        while ((col = strtok(NULL, delim))) // should use NULL for the same string
-            lineArr[i++] = col; // get columns in the line and store in array
+        // NOTE: should use NULL for the same string
+        while ((col = strtok(NULL, delim))) 
+            // get columns in the line and store in array
+            lineArr[i++] = col; 
 
         localAddr = lineArr[1];
         localAddrPort = lineArr[2];
@@ -50,10 +55,12 @@ void readFile(char *fileName, char* filterStr) {
         state = lineArr[5];
         inode = strtol(lineArr[13], NULL, 10);
 
-        // parse ip address
-        char *localIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipv4 address
-        char *foreignIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); // destination for parsed ipb6 address
+        // destination for parsed ipv4 address
+        char *localIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); 
+        // destination for parsed ipb6 address
+        char *foreignIpDst = calloc(isIpv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN, sizeof(char*)); 
         long localPortInt, foreignPortInt;
+
         parseIP(localAddr, &localIpDst, isIpv6);
         localPortInt = strtol(localAddrPort, NULL, 16);
         parseIP(foreignAddr, &foreignIpDst, isIpv6);
@@ -66,8 +73,8 @@ void readFile(char *fileName, char* filterStr) {
         char *processName;
         processName = findProgram(PID); 
 
-        // output
-        if (!filterStr || isSubStr(processName, filterStr)) // print if no filter string given or there's match
+        // print if no filter string given or there's match
+        if (!filterStr || isSubStr(processName, filterStr)) 
             printResult(isTCP, isIpv6, localIpDst, localPortInt, foreignIpDst, foreignPortInt, PID, processName);
         
         free(localIpDst);
@@ -89,17 +96,19 @@ void parseIP(char *ip, char **dst, bool isIpv6) {
     } else { // ipv6
         addressFamily = AF_INET6;
         int littleEndianIP[16];
-        for (int j = 0; j < 16; j++) { // cut ip string to array in order to convert to little endian
+        // cut ip string to array in order to convert to little endian
+        for (int j = 0; j < 16; j++) { 
             char *tmp = malloc(3); 
             strncpy(tmp, ip + j * 2, 2);
             tmp[2] = '\0';
             littleEndianIP[j] = strtol(tmp, NULL, 16);
         }
 
+        // little endian
         struct in6_addr addr = {littleEndianIP[3], littleEndianIP[2], littleEndianIP[1], littleEndianIP[0],
             littleEndianIP[7], littleEndianIP[6], littleEndianIP[5], littleEndianIP[4],
             littleEndianIP[11], littleEndianIP[10], littleEndianIP[9], littleEndianIP[8],
-            littleEndianIP[15], littleEndianIP[14], littleEndianIP[13], littleEndianIP[12]}; // little endian
+            littleEndianIP[15], littleEndianIP[14], littleEndianIP[13], littleEndianIP[12]}; 
         inet_ntop(addressFamily, &addr, *dst, INET6_ADDRSTRLEN);
     }
 }
@@ -109,7 +118,8 @@ char *findPID(long inode) {
     struct dirent *procDirContent; // pointer to /proc dir entry
     struct dirent *pidDirContent; // pointer to /proc/{pid} dir entry
 
-    while ((procDirContent = readdir(procDirP))) { // traverse all pid
+    // traversing all pid
+    while ((procDirContent = readdir(procDirP))) { 
         if (procDirContent->d_name[0] == '.') // if match '.' or '..'
             continue;
         
@@ -143,17 +153,20 @@ char *findPID(long inode) {
             continue;
         }
 
-        while ((pidDirContent = readdir(pidDirP))) { // traverse all symbol link or directory in this pid (process)
-            if (pidDirContent->d_name[0] == '.') // if match '.' or '..'
+        // traverse all symbol link or directory in this pid (process)
+        while ((pidDirContent = readdir(pidDirP))) { 
+            if (pidDirContent->d_name[0] == '.') 
+                // if match '.' or '..'   
                 continue;
-            
-            // printf("%s %s\n", procDirContent->d_name, pidDirContent->d_name);
-            char *p = calloc(strlen(path) + strlen(pidDirContent->d_name), sizeof(char*)); // path to each directory in this pid
+
+            // path to each directory in this pid
+            char *p = calloc(strlen(path) + strlen(pidDirContent->d_name), sizeof(char*)); 
             struct stat *fileStat = malloc(sizeof(struct stat));
             strcat(p, path);
             strcat(p, pidDirContent->d_name);    
-            if (stat(p, fileStat) != -1) { // read file states
-                if (S_ISSOCK(fileStat->st_mode)) { // check if the type is socket
+
+            if (stat(p, fileStat) != -1) {  // read file states
+                if (S_ISSOCK(fileStat->st_mode)) {  // check if the type is socket
                     if (fileStat->st_ino == inode) {
                         free(path);
                         free(p);
@@ -187,16 +200,20 @@ char *findProgram(char *pid) {
         exit(-1);
     }
 
+    // if line is NULL and len is 0, `getline` will allocates a buffer itself
     char *line = NULL;
-    size_t len = 0; // if line is NULL and len is 0, `getline` will allocates a buffer itself
+    size_t len = 0; 
     ssize_t r;
+
     r = getline(&line, &len, programCmd);  
 
     char *program[10], *tmp;
     int i = 0;
     tmp = strtok(line, "/");
     program[++i] = tmp;
-    while(tmp && (tmp = strtok(NULL, "/"))) // cut the program path to array and get program name only
+
+    // cut the program path to array and get program name only
+    while(tmp && (tmp = strtok(NULL, "/"))) 
         program[++i] = tmp;
 
     return program[i];
@@ -225,11 +242,12 @@ void printResult(bool isTCP, bool isIpv6,
     char *foreignPortStr = calloc(10, sizeof(long));
     sprintf(localPortStr, localPortInt == 0 ? "*" : "%ld", localPortInt);
     sprintf(foreignPortStr, foreignPortInt == 0? "*" : "%ld", foreignPortInt);
-
+    
+    // NOTE: the usage of the format string
     printf("%-5s %s:%-*s %s:%-*s %s/%s\n", isTCP ? (isIpv6 ? "tcp6" : "tcp") : (isIpv6 ? "udp6" : "udp"),
                                     localAddr, 23 - (int)strlen(localAddr), localPortStr, 
                                     foreignAddr, 23 - (int)strlen(foreignAddr), foreignPortStr, 
-                                    pid, processName); // NOTE: the usage of the format string
+                                    pid, processName); 
 
     free(localPortStr);
     free(foreignPortStr);
