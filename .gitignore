@@ -1,8 +1,11 @@
 .gdb_history
 *.swp
 *.o
-peda-session*
-hw1
-!hw1/
-inclass_code
+*.so
 *.pdf
+peda-session*
+hw*
+!hw*/
+inclass_code
+docker/
+sandbox
