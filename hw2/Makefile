@@ -17,8 +17,8 @@ lib: $(LIB)
 	gcc -o $@ --shared -fPIC $< -ldl
 
 test: test_normal test_large 
-	./$(EXE_NAME) ./sample1
-	./$(EXE_NAME) ./sample2
+	LD_PRELOAD=./sandbox.so ./$(EXE_NAME) ./sample1 || true 
+	LD_PRELOAD=./sandbox.so ./$(EXE_NAME) ./sample2 || true
 
 # regular version of sample
 test_normal:
