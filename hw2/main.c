@@ -4,6 +4,7 @@
  */
 
 #include <getopt.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,13 +23,26 @@ void usage()
 
 int main(int argc, char **argv)
 {
+    // initialize default location of the shared library with absolute path
+    char* sharedLibPath = calloc(100, sizeof(char));
+    sharedLibPath = realpath("./sandbox.so", sharedLibPath);
+    
+    // initialize default working directory
+    char *basedir = calloc(100, sizeof(char));
+    basedir = realpath("./", basedir);
+
     // handle the options
     int cmdOpt = 0;
     while ((cmdOpt = getopt(argc, argv, "p:d:")) != -1) {
         switch (cmdOpt) {
         case 'p':
+            // change the location of the shared library
+            memset(sharedLibPath, 0, 100); 
+            sharedLibPath = realpath(optarg, sharedLibPath);
             break;
         case 'd':
+            memset(basedir, 0, 100); 
+            basedir = realpath(optarg, basedir);
             break;
         case '?':
         default:
@@ -40,7 +54,7 @@ int main(int argc, char **argv)
     // handle the commands
     char *command = NULL;
     if (argc > optind) {
-        command = calloc(256, sizeof(char *));
+        command = calloc(256, sizeof(char));
         strcat(command, argv[optind]);
         if (optind + 1 < argc - 1)
             optind++;
@@ -48,5 +62,13 @@ int main(int argc, char **argv)
         fprintf(stderr, "no command given.\n");
         return -1;
     }
-    return execvp(command, argv + optind);
+
+    setenv("LD_PRELOAD", sharedLibPath, 1);
+    setenv("BASEDIR", basedir, 1);
+    int retExe = execvp(command, argv + optind);
+
+    free(sharedLibPath);
+    free(basedir);
+    free(command);
+    return retExe;
 }
