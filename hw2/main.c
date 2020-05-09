@@ -52,23 +52,16 @@ int main(int argc, char **argv)
     }
 
     // handle the commands
-    char *command = NULL;
-    if (argc > optind) {
-        command = calloc(256, sizeof(char));
-        strcat(command, argv[optind]);
-        if (optind + 1 < argc - 1)
-            optind++;
-    } else {
+    if (argc <= optind) {
         fprintf(stderr, "no command given.\n");
         return -1;
     }
 
     setenv("LD_PRELOAD", sharedLibPath, 1);
     setenv("BASEDIR", basedir, 1);
-    int retExe = execvp(command, argv + optind);
+    int retExe = execvp(argv[optind], argv + optind);
 
     free(sharedLibPath);
     free(basedir);
-    free(command);
     return retExe;
 }
