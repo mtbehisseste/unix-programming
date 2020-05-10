@@ -15,10 +15,12 @@
 
 #define LIBC "/lib/x86_64-linux-gnu/libc-2.27.so"
 
-// redirect stderr, force output to /dev/tty
-#define PRINT_TTY(fmt, ...)            \
-    freopen("/dev/tty", "w+", stderr); \
-    fprintf(stderr, fmt, __VA_ARGS__);
+// force output to /dev/tty
+#define PRINT_TTY(fmt, ...)                                                          \
+    void *handle = dlopen(LIBC, RTLD_LAZY);                                          \
+    FILE *(*old_fopen)(const char *path, const char *mode) = dlsym(handle, "fopen"); \
+    FILE *tty = old_fopen("/dev/tty", "a+");                                         \
+    fprintf(tty, fmt, __VA_ARGS__);
 
 // paramName is the parameters with only names, paramDecl is the parameters with
 // types and names
