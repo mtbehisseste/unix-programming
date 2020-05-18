@@ -5,3 +5,4 @@ inclass_code/
 !*.c
 !*.h
 !*.md
+!*.asm
