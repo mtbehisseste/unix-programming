@@ -10,7 +10,7 @@
 
 mov eax, 5
 mul dword ptr[0x600000]
-movsx rax, eax  ; the result might be bigger than the range of eax
+movsx rax, eax			; the result might be bigger than the range of eax
 mov ebx, [0x600004]
 sub ebx, 3
 div ebx

@@ -9,19 +9,19 @@
 ; ======
 ; Enter your codes: (type 'done:' when done)
 
-mov eax, [0x600000]		  ; var1
+mov eax, [0x600000]			; var1
 mov ebx, 0xfffffffb
 imul ebx
 mov ebx, eax
 
-mov eax, [0x600004]		  ; var2
+mov eax, [0x600004]			; var2
 neg eax
-idiv dword ptr[0x600008]  ; the remainder is in edx
+idiv dword ptr[0x600008]		; the remainder is in edx
 mov ecx, edx
 
-xor edx, edx			  ; idiv will check the value in edx:eax
-mov eax, ebx			  ; restore eax
-idiv ecx				  ; divide the remainder
+xor edx, edx				; idiv will check the value in edx:eax
+mov eax, ebx				; restore eax
+idiv ecx				; divide the remainder
 
 movsx rax, eax
 mov [0x60000c], eax
