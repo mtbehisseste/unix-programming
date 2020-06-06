@@ -1,12 +1,9 @@
-OBJS = exp_countme exp_capstone exp_syscall test
+OBJS = exp_countme exp_capstone exp_syscall
 LIBNAME = capstone
 
 all: $(OBJS)
 
 exp_capstone: exp_capstone.o 
-	gcc $< -Wall -l$(LIBNAME) -o $@
-
-test: test.o 
 	gcc $< -Wall -l$(LIBNAME) -o $@
 
 %: %.o 
