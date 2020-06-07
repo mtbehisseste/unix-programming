@@ -1,11 +1,11 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ptrace.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
 #include <sys/user.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 void errquit(const char *msg)
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 {
     int wait_status;
     pid_t child;
-    
+
     if ((child = fork()) < 0)
         errquit("fork");
     if (child == 0) {  // child
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         int fd = open("./no_more_traps.txt", O_RDONLY);
 
         // strip first trap, not quite sure why 0x00 is trapped
-        waitpid(child, &wait_status, 0);  
+        waitpid(child, &wait_status, 0);
         ptrace(PTRACE_CONT, child, 0, 0);
 
         long code;
@@ -52,13 +52,14 @@ int main(int argc, char *argv[])
             sscanf(c, "%lx", &patch_code);
 
             // patch 0xcc with given opcodes
-            code = ptrace(PTRACE_PEEKTEXT, child, regs.rip-1, 0);
-            if (ptrace(PTRACE_POKETEXT, child, regs.rip-1, (code & 0xffffffffffffff00 | patch_code)))
+            code = ptrace(PTRACE_PEEKTEXT, child, regs.rip - 1, 0);
+            if (ptrace(PTRACE_POKETEXT, child, regs.rip - 1,
+                       (code & 0xffffffffffffff00 | patch_code)))
                 errquit("ptrace(POKETEXT)");
-            code = ptrace(PTRACE_PEEKTEXT, child, regs.rip-1, 0);
-            
-            // run the patched codes 
-            regs.rip = regs.rip-1;
+            code = ptrace(PTRACE_PEEKTEXT, child, regs.rip - 1, 0);
+
+            // run the patched codes
+            regs.rip = regs.rip - 1;
             if (ptrace(PTRACE_SETREGS, child, 0, &regs))
                 errquit("ptrace(SETREGS)");
             ptrace(PTRACE_CONT, child, 0, 0);
