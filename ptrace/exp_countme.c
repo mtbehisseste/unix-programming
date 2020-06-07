@@ -29,8 +29,11 @@ int main(int argc, char *argv[])
     } else {  // parent
         long long counter = 0LL;
         int wait_status;
-        if (waitpid(child, &wait_status, 0) < 0)  // wait for the child
+
+        // wait for the child
+        if (waitpid(child, &wait_status, 0) < 0)
             errquit("waitpid");
+
         ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_EXITKILL);
         while (WIFSTOPPED(wait_status)) {
             counter++;

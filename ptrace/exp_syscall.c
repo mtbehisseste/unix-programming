@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
                    PTRACE_O_TRACESYSGOOD);
 
         while (WIFSTOPPED(wait_status)) {
-            if (ptrace(PTRACE_SYSCALL, child, 0, 0) != 0)
+            if (ptrace(PTRACE_SYSCALL, child, 0, 0))
                 errquit("ptrace@parent");
 
             // update status of child
