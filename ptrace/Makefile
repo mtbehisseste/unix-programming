@@ -1,4 +1,4 @@
-OBJS = exp_countme exp_capstone exp_syscall
+OBJS = exp_countme exp_capstone exp_syscall exp_no_more_traps
 LIBNAME = capstone
 
 all: $(OBJS)
